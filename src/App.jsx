@@ -1,70 +1,31 @@
 /*global chrome*/
-import { useState, useEffect } from "react";
+
+import { useEffect, useState } from "react";
 
 const App = () => {
-  const [currentTab, setCurrentTab] = useState(null);
-  const [lastTime, setLastTime] = useState(null);
-  const [id, setId] = useState(null);
+  const [val, setVal] = useState(null);
+
+  const getDomain = (tabLink) => {
+    if (tabLink) {
+      const url = tabLink[0].url;
+      const domain = url.split("/")[2];
+      return domain;
+    } else {
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const fetchCurrentTab = async () => {
-      try {
-        let queryOptions = { active: true, lastFocusedWindow: true };
-        let [tab] = await chrome.tabs.query(queryOptions);
-        console.log(tab);
-        setCurrentTab(tab);
-        const time = formatLastAccessed(tab.lastAccessed);
-        setLastTime(time);
-      } catch (error) {
-        console.error("Error fetching current tab:", error);
+    chrome.tabs.query(
+      { active: true, lastFocusedWindow: true },
+      (activeTab) => {
+        const domain = getDomain(activeTab);
+        setVal(domain);
       }
-    };
-
-    const sessionsChrome = async () => {
-      const x = chrome.sessions.types;
-      console.log(x);
-    };
-
-    chrome.tabs.onActivated.addListener((activeInfo) => {
-      const tabId = activeInfo.tabId;
-      const currentTime = new Date().toISOString();
-      chrome.storage.local.set({ [tabId]: currentTime });
-    });
-
-    chrome.tabs.onRemoved.addListener((tabId) => {
-      chrome.storage.local.remove(tabId.toString());
-    });
-
-    function getTabAccessTime(tabId) {
-      chrome.storage.local.get(tabId.toString(), (result) => {
-        const accessTime = result[tabId.toString()];
-        console.log(`Access time of tab ${tabId}: ${accessTime}`);
-      });
-    }
-
-    sessionsChrome();
-    fetchCurrentTab();
+    );
   }, []);
 
-  function formatLastAccessed(lastAccessed) {
-    const date = new Date(lastAccessed);
-    const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    return formattedDate;
-  }
-
-  return (
-    <div>
-      {currentTab ? (
-        <div>
-          <p>Title: {currentTab.title}</p>
-          <p>URL: {currentTab.url}</p>
-          <h1>LastTime: {lastTime}</h1>
-        </div>
-      ) : (
-        <p>Loading...</p>
-      )}
-    </div>
-  );
+  return <>{val}</>;
 };
 
 export default App;
